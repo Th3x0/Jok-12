@@ -73,7 +73,7 @@ class Spaceship
                 }
             }
         }
-        static void shots_move ()//fa muovere gli shots ed elimina dal fondo se superano il limite
+        static void move_shots ()//fa muovere gli shots ed elimina dal fondo se superano il limite
         {
             if (shots!=NULL)
             {
@@ -129,6 +129,73 @@ int Spaceship::shot_speed=4;
 Shot* Spaceship::shots=NULL;
 int Spaceship::counter=0;
 
+class Monster
+{
+    private:
+        static Monster* monsters;
+        static int monster_frequency;
+        static int counter;
+        static int monster_width;
+        static int monster_height;
+        static int monster_speed;
+        Monster* next;
+        float x;
+        float y;
+    public:
+        Monster(Monster* _next, float _x, float _y):next(_next),x(_x),y(_y)
+        {
+        }
+        static void random_gen()
+        {
+            if(++counter==monster_frequency)
+            {
+                counter=0;
+                if(rand()%(100-monster_frequency)<=monster_frequency)
+                {
+                    if(rand()%100<=2)
+                        --monster_frequency;
+                    float this_x=left_limit+(rand()%129-2*monster_width)*grain;
+                    if(NULL==monsters)//catena vuota
+                        monsters=new Monster(NULL,this_x,upper_limit);
+                    else
+                    {
+                        Monster* temp=monsters;
+                        for(;temp->next!=NULL;temp=temp->next)//aggiungo in fondo
+                        {}
+                        temp->next=new Monster(NULL,this_x,upper_limit);
+                    }
+                }
+            }
+        }
+        static void draw_monsters()
+        {
+            glColor3f(1,1,1);
+            glBegin(GL_QUADS);
+            for(Monster* temp=monsters;temp!=NULL;temp=temp->next)
+            {
+                glVertex2f(temp->x+monster_width*grain,temp->y+monster_height*grain);
+                glVertex2f(temp->x-monster_width*grain,temp->y+monster_height*grain);
+                glVertex2f(temp->x-monster_width*grain,temp->y-monster_height*grain);
+                glVertex2f(temp->x+monster_width*grain,temp->y-monster_height*grain);
+            }
+            glEnd();
+        }
+        static move_monsters()
+        {
+            for(Monster* temp=monsters;temp!=NULL;temp=temp->next)
+            {
+                temp->y-=grain*monster_speed;
+            }
+        }
+};
+
+Monster* Monster::monsters=NULL;
+int Monster::counter=0;
+int Monster::monster_frequency=20;
+int Monster::monster_width=2;
+int Monster::monster_height=3;
+int Monster::monster_speed=1;
+
 class Keyboard_Manager
 {
     private:
@@ -172,6 +239,7 @@ static void display(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     Spaceship::draw_ship();
     Spaceship::draw_shots();
+    Monster::draw_monsters();
     glFlush();
 }
 
@@ -204,7 +272,9 @@ static void timer(int useless)
         Spaceship::move_left();
     if(Keyboard_Manager::State('w'))
         Spaceship::shoot();
-    Spaceship::shots_move();
+    Spaceship::move_shots();
+    Monster::random_gen();
+    Monster::move_monsters();
     glutPostRedisplay();
     glutTimerFunc(16,timer,0);
 }
