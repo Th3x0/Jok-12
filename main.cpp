@@ -16,13 +16,16 @@ static constexpr float right_limit = 1.0f;
 
 // CLASSI
 
+
 struct Shot
 {
     Shot* next;
     float shot_x;
     float shot_y;
     Shot(Shot* _next,float _x, float _y):next(_next),shot_x(_x),shot_y(_y)
-        {}
+    {}
+    ~Shot()
+    {}
 };
 
 class Spaceship
@@ -31,11 +34,13 @@ class Spaceship
         static float x;
         static int ship_speed;
         static int shot_speed;
+        static int counter;
         static Shot* shots;
         static constexpr float y=grain*12;
         static constexpr float height=grain*8;
         static constexpr float width=grain*3;
         static constexpr float shot_height=grain*2;
+        static constexpr int shot_frequency=15;
 
     public:
         static void move_left()//muove l'astronave a sinistra
@@ -52,28 +57,48 @@ class Spaceship
             if(x<=right_limit-width-grain*ship_speed)
                 x+=grain*ship_speed;
         }
-        static void shoot()//devo aggiungere un nuovo shot nella catena dinamica di shots, ma la voglio tenere ordinata
+        static void shoot()//devo aggiungere un nuovo shot nella catena dinamica di shots
         {
-            if(NULL==shots)//catena vuota
-                shots=new Shot(NULL,x,lower_limit+y);
-            else
-                {
-                if (shots->shot_x>x)//catena non vuota ma devo inserire al primo posto
-                    shots=new Shot (shots,x,lower_limit+y);
+            if(++counter>=shot_frequency)//limito la freqenza massima di sparo
+            {
+                counter=0;
+                if(NULL==shots)//catena vuota
+                    shots=new Shot(NULL,x,lower_limit+y);
                 else
-                    for(Shot* temp=shots;;temp=temp->next)//aggiungo nel mezzo al posto giusto o, al più, in fondo
-                        if(NULL==temp->next||(temp->next)->shot_x>=x)
-                            {
-                                temp->next=new Shot ((temp->next),x,lower_limit+y);
-                                break;
-                            }
+                {
+                    Shot* temp=shots;
+                    for(;temp->next!=NULL;temp=temp->next)//aggiungo in fondo
+                    {}
+                    temp->next=new Shot(NULL,x,lower_limit+y);
                 }
-
+            }
         }
-        static void shots_move ()//fa muovere gli shots
+        static void shots_move ()//fa muovere gli shots ed elimina dal fondo se superano il limite
         {
-            for(Shot* temp=shots;temp!=NULL;temp=temp->next)
-                temp->shot_y+=grain*shot_speed;
+            if (shots!=NULL)
+            {
+                if(shots->next!=NULL)
+                {
+                    Shot* temp=shots;
+                    for(;(temp->next)->next!=NULL;temp=temp->next)
+                            temp->shot_y+=grain*shot_speed;
+                    temp->shot_y+=grain*shot_speed;
+                    if((temp->next)->shot_y<upper_limit)
+                        (temp->next)->shot_y+=grain*shot_speed;
+                    else
+                    {
+                        delete temp->next;
+                        temp->next=NULL;
+                    }
+                }
+                else if (shots->shot_y<upper_limit)
+                    shots->shot_y+=grain*shot_speed;
+                else
+                {
+                    delete shots;
+                    shots=NULL;
+                }
+            }
         }
         static void draw_ship()//disegna l'astronave
         {
@@ -102,6 +127,7 @@ float Spaceship::x=0.0f;
 int Spaceship::ship_speed=2;
 int Spaceship::shot_speed=4;
 Shot* Spaceship::shots=NULL;
+int Spaceship::counter=0;
 
 class Keyboard_Manager
 {
@@ -176,6 +202,8 @@ static void timer(int useless)
         Spaceship::move_right();
     if(Keyboard_Manager::State('a'))
         Spaceship::move_left();
+    if(Keyboard_Manager::State('w'))
+        Spaceship::shoot();
     Spaceship::shots_move();
     glutPostRedisplay();
     glutTimerFunc(16,timer,0);
