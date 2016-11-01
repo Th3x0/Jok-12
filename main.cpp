@@ -31,8 +31,8 @@ struct Shot
 class Monster
 {
     private:
-        static constexpr int min_frequency=5;
-        static constexpr int monster_width=2;
+        static constexpr int min_frequency=7;
+        static constexpr int monster_width=4;
         static constexpr int monster_height=3;
         static constexpr int monster_speed=1;
         static Monster* monsters;
@@ -101,7 +101,7 @@ class Monster
         }
         static void draw_monsters()
         {
-            glColor3f(1,1,1);
+            glColor3f(rand()%65*grain,rand()%65*grain,rand()%65*grain);
             glBegin(GL_QUADS);
             for(Monster* temp=monsters;temp!=NULL;temp=temp->next)
             {
@@ -181,7 +181,7 @@ class Spaceship
         }
         static void draw_ship()//disegna l'astronave
         {
-            glColor3f(1,1,1);
+            glColor3f(0.8,0.8,0.4);
             glBegin(GL_TRIANGLES);
             glVertex2f(x,lower_limit+y);
             glVertex2f(x-width,lower_limit+y-height);
@@ -227,8 +227,12 @@ void collider()
              Spaceship::shots!=NULL&&
              check_collision(Monster::monsters,Spaceship::shots))
         {
-            Monster::monsters=Monster::monsters->next;//DELETE!!!!
+            Monster* mon_deleter=Monster::monsters;
+            Shot* sho_deleter=Spaceship::shots;
+            Monster::monsters=Monster::monsters->next;
             Spaceship::shots=Spaceship::shots->next;
+            delete mon_deleter;
+            delete sho_deleter;
         }
 
         if(Monster::monsters!=NULL)//controllo il primo shot con tutti i mostri
@@ -240,8 +244,12 @@ void collider()
             {
                 if(check_collision(mon_temp,Spaceship::shots))
                 {
-                    pre_mon_temp->next=mon_temp->next;//DELETE!!!
+                    Monster* mon_deleter=mon_temp;
+                    Shot* sho_deleter=Spaceship::shots;
+                    pre_mon_temp->next=mon_temp->next;
                     Spaceship::shots=Spaceship::shots->next;
+                    delete mon_deleter;
+                    delete sho_deleter;
                 }
                 pre_mon_temp=pre_mon_temp->next;
             }
@@ -256,18 +264,47 @@ void collider()
             {
                 if(check_collision(Monster::monsters,sho_temp))
                 {
+                    Monster* mon_deleter=Monster::monsters;
+                    Shot* sho_deleter=sho_temp;
                     Monster::monsters=Monster::monsters->next;
-                    pre_sho_temp->next=sho_temp->next;//DELETE!!!
+                    pre_sho_temp->next=sho_temp->next;
+                    delete mon_deleter;
+                    delete sho_deleter;
                 }
                 pre_sho_temp=pre_sho_temp->next;
             }
         }
 
-        //controllo altri mostri e altri shots
-
-
-        if(check_collision(mon_temp,sho_temp))
-            std::cout<<"Colpito!\n";
+        if(Spaceship::shots!=NULL&&Monster::monsters!=NULL)//controllo altri mostri e altri shots
+        {
+            Shot* pre_sho_temp=Spaceship::shots;
+            Shot* sho_temp=Spaceship::shots->next;
+            Monster* pre_mon_temp=Monster::monsters;
+            Monster* mon_temp=Monster::monsters->next;
+            while(mon_temp!=NULL&&
+                 sho_temp!=NULL)
+            {
+                if(check_collision(mon_temp,sho_temp))
+                {
+                    Monster* mon_deleter=mon_temp;
+                    Shot* sho_deleter=sho_temp;
+                    pre_mon_temp->next=mon_temp->next;
+                    pre_sho_temp->next=sho_temp->next;
+                    delete mon_deleter;
+                    delete sho_deleter;
+                }
+                if(mon_temp->y>sho_temp->shot_y)
+                {
+                    pre_mon_temp=pre_mon_temp->next;
+                    mon_temp=mon_temp->next;
+                }
+                else
+                {
+                    pre_sho_temp=pre_sho_temp->next;
+                    sho_temp=sho_temp->next;
+                }
+            }
+        }
     }
 }
 
