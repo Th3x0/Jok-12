@@ -28,6 +28,98 @@ struct Shot
     {}
 };
 
+class Monster
+{
+    private:
+        static constexpr int min_frequency=5;
+        static constexpr int monster_width=2;
+        static constexpr int monster_height=3;
+        static constexpr int monster_speed=1;
+        static Monster* monsters;
+        static int monster_frequency;
+        static int counter;
+        Monster* next;
+        float x;
+        float y;
+    public:
+        Monster(Monster* _next, float _x, float _y):next(_next),x(_x),y(_y)
+        {
+            std::cout<<"nasco\n";
+        }
+        ~Monster()
+        {
+            std::cout<<"muoio\n";
+        }
+        static void random_gen()//ogni tanto devo aggiungere un nuovo mostro nella catena dinamica di mostri ordinata decrescentemente su y
+        {
+            if(++counter==monster_frequency)//spazio fra un nemico e l'altro
+            {
+                counter=0;
+                if(rand()%(60+monster_frequency)<=40-monster_frequency)//probabilità di creare un nemico
+                {
+                    if(rand()%1000<=monster_frequency+60&&monster_frequency>min_frequency)//probabilità di aumentare il numero di nemici
+                        --monster_frequency;
+                    float this_x=left_limit+(rand()%(129-2*monster_width)+monster_width)*grain;//x iniziale del mostro
+                    if(NULL==monsters)//catena vuota
+                        monsters=new Monster(NULL,this_x,upper_limit);
+                    else //aggiungo in testa
+                        monsters=new Monster(monsters,this_x,upper_limit);
+                }
+            }
+        }
+        static void move_monsters()
+        {
+            Monster* temp=monsters;
+            for(;temp!=NULL&&temp->next!=NULL&&(temp->next)->next!=NULL;temp=temp->next)//muovo fino al terzultimo (se c'è)
+            {
+                temp->y-=grain*monster_speed;
+            }
+            if(temp!=NULL)//elimino quelli che escono dallo schermo
+            {
+                if(NULL==temp->next)//temp punta all'ultimo (quindi è == monsters)
+                {
+                    if(temp->y<=lower_limit-monster_height*grain)//devo eliminarlo
+                        {
+                            delete monsters;
+                            monsters=NULL;
+                        }
+                    else
+                        temp->y-=grain*monster_speed;
+                }
+                else//temp punta al penultimo
+                {
+                    temp->y-=grain*monster_speed;
+                    if((temp->next)->y<=lower_limit-monster_height*grain)
+                    {
+                        delete temp->next;
+                        temp->next=NULL;
+                    }
+                    else
+                        (temp->next)->y-=grain*monster_speed;
+                }
+            }
+        }
+        static void draw_monsters()
+        {
+            glColor3f(1,1,1);
+            glBegin(GL_QUADS);
+            for(Monster* temp=monsters;temp!=NULL;temp=temp->next)
+            {
+                glVertex2f(temp->x+monster_width*grain,temp->y+monster_height*grain);
+                glVertex2f(temp->x-monster_width*grain,temp->y+monster_height*grain);
+                glVertex2f(temp->x-monster_width*grain,temp->y-monster_height*grain);
+                glVertex2f(temp->x+monster_width*grain,temp->y-monster_height*grain);
+            }
+            glEnd();
+        }
+        friend bool check_collision(Monster*, Shot*);
+        friend void collider();
+};
+
+Monster* Monster::monsters=NULL;
+int Monster::counter=0;
+int Monster::monster_frequency=20;
+
 class Spaceship
 {
     private:
@@ -57,7 +149,7 @@ class Spaceship
             if(x<=right_limit-width-grain*ship_speed)
                 x+=grain*ship_speed;
         }
-        static void shoot()//devo aggiungere un nuovo shot nella catena dinamica di shots
+        static void shoot()//devo aggiungere un nuovo shot nella catena dinamica di shots ordinata decrescentemente su y
         {
             if(++counter>=shot_frequency)//limito la freqenza massima di sparo
             {
@@ -73,31 +165,18 @@ class Spaceship
                 }
             }
         }
-        static void move_shots ()//fa muovere gli shots ed elimina dal fondo se superano il limite
+        static void move_shots ()//fa muovere gli shots ed elimina dalla testa se superano il limite
         {
             if (shots!=NULL)
             {
-                if(shots->next!=NULL)
+                if(shots->shot_y>=upper_limit)
                 {
                     Shot* temp=shots;
-                    for(;(temp->next)->next!=NULL;temp=temp->next)
-                            temp->shot_y+=grain*shot_speed;
-                    temp->shot_y+=grain*shot_speed;
-                    if((temp->next)->shot_y<upper_limit)
-                        (temp->next)->shot_y+=grain*shot_speed;
-                    else
-                    {
-                        delete temp->next;
-                        temp->next=NULL;
-                    }
+                    shots=shots->next;
+                    delete temp;
                 }
-                else if (shots->shot_y<upper_limit)
-                    shots->shot_y+=grain*shot_speed;
-                else
-                {
-                    delete shots;
-                    shots=NULL;
-                }
+                for(Shot* temp=shots;temp!=NULL;temp=temp->next)
+                        temp->shot_y+=grain*shot_speed;
             }
         }
         static void draw_ship()//disegna l'astronave
@@ -121,6 +200,8 @@ class Spaceship
             }
             glEnd();
         }
+        friend bool check_collision(Monster*, Shot*);
+        friend void collider();
 };
 
 float Spaceship::x=0.0f;
@@ -129,72 +210,66 @@ int Spaceship::shot_speed=4;
 Shot* Spaceship::shots=NULL;
 int Spaceship::counter=0;
 
-class Monster
+bool check_collision(Monster* mon_temp, Shot* sho_temp)
 {
-    private:
-        static Monster* monsters;
-        static int monster_frequency;
-        static int counter;
-        static int monster_width;
-        static int monster_height;
-        static int monster_speed;
-        Monster* next;
-        float x;
-        float y;
-    public:
-        Monster(Monster* _next, float _x, float _y):next(_next),x(_x),y(_y)
-        {
-        }
-        static void random_gen()
-        {
-            if(++counter==monster_frequency)
-            {
-                counter=0;
-                if(rand()%(100-monster_frequency)<=monster_frequency)
-                {
-                    if(rand()%100<=2)
-                        --monster_frequency;
-                    float this_x=left_limit+(rand()%129-2*monster_width)*grain;
-                    if(NULL==monsters)//catena vuota
-                        monsters=new Monster(NULL,this_x,upper_limit);
-                    else
-                    {
-                        Monster* temp=monsters;
-                        for(;temp->next!=NULL;temp=temp->next)//aggiungo in fondo
-                        {}
-                        temp->next=new Monster(NULL,this_x,upper_limit);
-                    }
-                }
-            }
-        }
-        static void draw_monsters()
-        {
-            glColor3f(1,1,1);
-            glBegin(GL_QUADS);
-            for(Monster* temp=monsters;temp!=NULL;temp=temp->next)
-            {
-                glVertex2f(temp->x+monster_width*grain,temp->y+monster_height*grain);
-                glVertex2f(temp->x-monster_width*grain,temp->y+monster_height*grain);
-                glVertex2f(temp->x-monster_width*grain,temp->y-monster_height*grain);
-                glVertex2f(temp->x+monster_width*grain,temp->y-monster_height*grain);
-            }
-            glEnd();
-        }
-        static move_monsters()
-        {
-            for(Monster* temp=monsters;temp!=NULL;temp=temp->next)
-            {
-                temp->y-=grain*monster_speed;
-            }
-        }
-};
+        return (mon_temp->y+Monster::monster_height*grain>=sho_temp->shot_y&&//bordo alto mostro
+                mon_temp->y-Monster::monster_height*grain<=sho_temp->shot_y+Spaceship::shot_height&&//bordo basso mostro
+                mon_temp->x+Monster::monster_width*grain>=sho_temp->shot_x-grain&&//bordo destro mostro
+                mon_temp->x-Monster::monster_width*grain<=sho_temp->shot_x+grain);//bordo sinistro mostro
+}
 
-Monster* Monster::monsters=NULL;
-int Monster::counter=0;
-int Monster::monster_frequency=20;
-int Monster::monster_width=2;
-int Monster::monster_height=3;
-int Monster::monster_speed=1;
+void collider()
+{
+    if(NULL!=Monster::monsters&&NULL!=Spaceship::shots)
+    {
+        //controllo il primo mostro E il primo shot
+        while(Monster::monsters!=NULL&&
+             Spaceship::shots!=NULL&&
+             check_collision(Monster::monsters,Spaceship::shots))
+        {
+            Monster::monsters=Monster::monsters->next;//DELETE!!!!
+            Spaceship::shots=Spaceship::shots->next;
+        }
+
+        if(Monster::monsters!=NULL)//controllo il primo shot con tutti i mostri
+        {
+            Monster* pre_mon_temp=Monster::monsters;
+            Monster* mon_temp=Monster::monsters->next;
+            for(;mon_temp!=NULL&&
+                 Spaceship::shots!=NULL;mon_temp=mon_temp->next)
+            {
+                if(check_collision(mon_temp,Spaceship::shots))
+                {
+                    pre_mon_temp->next=mon_temp->next;//DELETE!!!
+                    Spaceship::shots=Spaceship::shots->next;
+                }
+                pre_mon_temp=pre_mon_temp->next;
+            }
+        }
+
+        if(Spaceship::shots!=NULL)//controllo il primo mostro con tutti gli shot
+        {
+            Shot* pre_sho_temp=Spaceship::shots;//potrei partire anche dal secondo
+            Shot* sho_temp=Spaceship::shots->next;
+            for(;Monster::monsters!=NULL&&
+                 sho_temp!=NULL;sho_temp=sho_temp->next)
+            {
+                if(check_collision(Monster::monsters,sho_temp))
+                {
+                    Monster::monsters=Monster::monsters->next;
+                    pre_sho_temp->next=sho_temp->next;//DELETE!!!
+                }
+                pre_sho_temp=pre_sho_temp->next;
+            }
+        }
+
+        //controllo altri mostri e altri shots
+
+
+        if(check_collision(mon_temp,sho_temp))
+            std::cout<<"Colpito!\n";
+    }
+}
 
 class Keyboard_Manager
 {
@@ -270,11 +345,12 @@ static void timer(int useless)
         Spaceship::move_right();
     if(Keyboard_Manager::State('a'))
         Spaceship::move_left();
+    Spaceship::move_shots();
+    Monster::move_monsters();
+    collider();
     if(Keyboard_Manager::State('w'))
         Spaceship::shoot();
-    Spaceship::move_shots();
     Monster::random_gen();
-    Monster::move_monsters();
     glutPostRedisplay();
     glutTimerFunc(16,timer,0);
 }
