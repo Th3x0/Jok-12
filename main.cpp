@@ -239,8 +239,8 @@ void collider()
         {
             Monster* pre_mon_temp=Monster::monsters;
             Monster* mon_temp=Monster::monsters->next;
-            for(;mon_temp!=NULL&&
-                 Spaceship::shots!=NULL;mon_temp=mon_temp->next)
+            while(mon_temp!=NULL&&
+                 Spaceship::shots!=NULL)
             {
                 if(check_collision(mon_temp,Spaceship::shots))
                 {
@@ -250,8 +250,13 @@ void collider()
                     Spaceship::shots=Spaceship::shots->next;
                     delete mon_deleter;
                     delete sho_deleter;
+                    mon_temp=pre_mon_temp->next;
                 }
-                pre_mon_temp=pre_mon_temp->next;
+                else
+                {
+                    pre_mon_temp=pre_mon_temp->next;
+                    mon_temp=mon_temp->next;
+                }
             }
         }
 
@@ -259,8 +264,8 @@ void collider()
         {
             Shot* pre_sho_temp=Spaceship::shots;//potrei partire anche dal secondo
             Shot* sho_temp=Spaceship::shots->next;
-            for(;Monster::monsters!=NULL&&
-                 sho_temp!=NULL;sho_temp=sho_temp->next)
+            while(Monster::monsters!=NULL&&
+                 sho_temp!=NULL)
             {
                 if(check_collision(Monster::monsters,sho_temp))
                 {
@@ -270,14 +275,19 @@ void collider()
                     pre_sho_temp->next=sho_temp->next;
                     delete mon_deleter;
                     delete sho_deleter;
+                    sho_temp=pre_sho_temp->next;
                 }
-                pre_sho_temp=pre_sho_temp->next;
+                else
+                {
+                    pre_sho_temp=pre_sho_temp->next;
+                    sho_temp=sho_temp->next;
+                }
             }
         }
 
         if(Spaceship::shots!=NULL&&Monster::monsters!=NULL)//controllo altri mostri e altri shots
         {
-            Shot* pre_sho_temp=Spaceship::shots;
+            Shot* pre_sho_temp=Spaceship::shots;// IL BUG è qui da qualche parte
             Shot* sho_temp=Spaceship::shots->next;
             Monster* pre_mon_temp=Monster::monsters;
             Monster* mon_temp=Monster::monsters->next;
@@ -292,6 +302,8 @@ void collider()
                     pre_sho_temp->next=sho_temp->next;
                     delete mon_deleter;
                     delete sho_deleter;
+                    mon_temp=pre_mon_temp->next;
+                    sho_temp=pre_sho_temp->next;
                 }
                 if(mon_temp!=NULL&&sho_temp!=NULL)
                 {
