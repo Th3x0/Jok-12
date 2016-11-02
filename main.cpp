@@ -101,7 +101,7 @@ class Monster
         }
         static void draw_monsters()
         {
-            glColor3f(rand()%65*grain,rand()%65*grain,rand()%65*grain);
+            glColor3f(0.6,0.2,0.9);
             glBegin(GL_QUADS);
             for(Monster* temp=monsters;temp!=NULL;temp=temp->next)
             {
@@ -181,7 +181,7 @@ class Spaceship
         }
         static void draw_ship()//disegna l'astronave
         {
-            glColor3f(0.8,0.8,0.4);
+            glColor3f(0.9,0.9,0.2);
             glBegin(GL_TRIANGLES);
             glVertex2f(x,lower_limit+y);
             glVertex2f(x-width,lower_limit+y-height);
@@ -293,15 +293,18 @@ void collider()
                     delete mon_deleter;
                     delete sho_deleter;
                 }
-                if(mon_temp->y>sho_temp->shot_y)
+                if(mon_temp!=NULL&&sho_temp!=NULL)
                 {
-                    pre_mon_temp=pre_mon_temp->next;
-                    mon_temp=mon_temp->next;
-                }
-                else
-                {
-                    pre_sho_temp=pre_sho_temp->next;
-                    sho_temp=sho_temp->next;
+                    if(mon_temp->y>sho_temp->shot_y)
+                    {
+                        pre_mon_temp=pre_mon_temp->next;
+                        mon_temp=mon_temp->next;
+                    }
+                    else
+                    {
+                        pre_sho_temp=pre_sho_temp->next;
+                        sho_temp=sho_temp->next;
+                    }
                 }
             }
         }
