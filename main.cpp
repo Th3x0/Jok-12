@@ -287,7 +287,7 @@ void collider()
 
         if(Spaceship::shots!=NULL&&Monster::monsters!=NULL)//controllo altri mostri e altri shots
         {
-            Shot* pre_sho_temp=Spaceship::shots;// IL BUG è qui da qualche parte
+            Shot* pre_sho_temp=Spaceship::shots;
             Shot* sho_temp=Spaceship::shots->next;
             Monster* pre_mon_temp=Monster::monsters;
             Monster* mon_temp=Monster::monsters->next;
